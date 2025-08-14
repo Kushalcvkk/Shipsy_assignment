@@ -1,0 +1,47 @@
+{
+  "name": "expense-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "lint": "next lint",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy"
+  },
+  "prisma": {
+  "seed": "node prisma/seed.js"
+},
+
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.1",
+    "@prisma/client": "^6.14.0",
+    "bcrypt": "^6.0.0",
+    "jose": "^6.0.12",
+    "next": "15.4.6",
+    "prisma": "^6.14.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-hook-form": "^7.62.0",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^20.19.10",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.6",
+    "supertest": "^7.1.4",
+    "tailwindcss": "^4",
+    "tsx": "^4.20.4",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
+
