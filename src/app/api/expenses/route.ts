@@ -2,76 +2,80 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma, Category } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/get-user";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const user = await getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+type ExpenseSortBy = "createdAt" | "amount" | "title" | "isRecurring";
+type ExpenseOrder = "asc" | "desc";
 
-    const { id } = params;
-
-    const expense = await prisma.expense.findFirst({
-      where: { id, userId: user.id },
-    });
-
-    if (!expense) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
-
-    return NextResponse.json(expense);
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-  }
+interface ExpenseQueryParams {
+  category?: string;
+  sortBy?: ExpenseSortBy;
+  order?: ExpenseOrder;
+  minAmount?: string;
+  maxAmount?: string;
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const user = await getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = params;
-    const body = await req.json() as {
-      title?: string;
-      category?: string;
-      amount?: number;
-      isRecurring?: boolean;
-      taxPercent?: number;
-      discount?: number;
-    };
+  const { searchParams } = new URL(req.url);
+  const params: ExpenseQueryParams = {
+    category: searchParams.get("category") || undefined,
+    sortBy: (searchParams.get("sortBy") as ExpenseSortBy) || "createdAt",
+    order: (searchParams.get("order") as ExpenseOrder) || "desc",
+    minAmount: searchParams.get("minAmount") || undefined,
+    maxAmount: searchParams.get("maxAmount") || undefined,
+  };
 
-    const updateData: any = { ...body };
-    if (body.category) {
-      updateData.category = Category[body.category as keyof typeof Category];
-    }
+  const where: {
+    userId: string;
+    category?: Category;
+    amount?: { gte?: number; lte?: number };
+  } = { userId: user.id };
 
-    const expense = await prisma.expense.updateMany({
-      where: { id, userId: user.id },
-      data: updateData,
-    });
-
-    if (expense.count === 0) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+  if (params.category && params.category !== "ALL") {
+    where.category = Category[params.category as keyof typeof Category];
   }
+
+  if (params.minAmount || params.maxAmount) {
+    where.amount = {};
+    if (params.minAmount) where.amount.gte = parseFloat(params.minAmount);
+    if (params.maxAmount) where.amount.lte = parseFloat(params.maxAmount);
+  }
+
+  const expenses = await prisma.expense.findMany({
+    where,
+    orderBy: { [params.sortBy!]: params.order },
+  });
+
+  return NextResponse.json(expenses);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const user = await getUserFromRequest(req);
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function POST(req: NextRequest) {
+  const user = await getUserFromRequest(req);
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id } = params;
+  const reqBody = await req.json() as {
+    title: string;
+    category: string;
+    amount: number;
+    isRecurring?: boolean;
+    taxPercent?: number;
+    discount?: number;
+  };
 
-    const deleted = await prisma.expense.deleteMany({
-      where: { id, userId: user.id },
-    });
+  const categoryEnum: Category = Category[reqBody.category as keyof typeof Category];
 
-    if (deleted.count === 0) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+  const expense = await prisma.expense.create({
+    data: {
+      userId: user.id,
+      title: reqBody.title,
+      category: categoryEnum,
+      amount: reqBody.amount,
+      isRecurring: reqBody.isRecurring ?? false,
+      taxPercent: reqBody.taxPercent ?? 0,
+      discount: reqBody.discount ?? 0,
+    },
+  });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
-  }
+  return NextResponse.json(expense);
 }

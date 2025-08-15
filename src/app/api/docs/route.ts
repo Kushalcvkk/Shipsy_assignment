@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import swaggerUi from "swagger-ui-express";
+// import swaggerUi from "swagger-ui-express";
 import swaggerDocument from "@/lib/swagger.json";
 
 export async function GET() {

@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, Category } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/get-user";
 
-interface Params {
-  params: {
-    id: string;
-  };
-}
-
-export async function GET(req: NextRequest, { params }: Params) {
+// No custom Params interface needed — just destructure params directly
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -21,27 +19,46 @@ export async function GET(req: NextRequest, { params }: Params) {
   return NextResponse.json(expense);
 }
 
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const data = await req.json();
+  const body: {
+    title?: string;
+    category?: string;
+    amount?: number;
+    isRecurring?: boolean;
+    taxPercent?: number;
+    discount?: number;
+  } = await req.json();
+
+  const updateData: any = { ...body };
+  if (body.category) {
+    updateData.category = Category[body.category as keyof typeof Category];
+  }
 
   const updated = await prisma.expense.updateMany({
     where: { id: params.id, userId: user.id },
-    data,
+    data: updateData,
   });
 
   if (updated.count === 0)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const expense = await prisma.expense.findUnique({
-    where: { id: params.id },
+  const expense = await prisma.expense.findFirst({
+    where: { id: params.id, userId: user.id },
   });
+
   return NextResponse.json(expense);
 }
 
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

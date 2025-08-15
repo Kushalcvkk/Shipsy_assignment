@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Sun, Moon, LogOut } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -86,119 +86,123 @@ export default function HomePage() {
     setLoading(false);
   };
 
-  // Fetch expenses with filters
-  const fetchExpenses = async () => {
-    const params = new URLSearchParams();
-    
-    if (filters.category !== "ALL") params.append("category", filters.category);
-    if (filters.minAmount) params.append("minAmount", filters.minAmount);
-    if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
-    params.append("sortBy", sorting.field);
-    params.append("order", sorting.order);
+  const fetchExpenses = useCallback(async () => {
+  const params = new URLSearchParams();
 
-    const res = await fetch(`/api/expenses?${params}`);
-    if (res.ok) {
-      const data = await res.json();
-      setExpenses(data);
-    }
-  };
+  if (filters.category !== "ALL") params.append("category", filters.category);
+  if (filters.minAmount) params.append("minAmount", filters.minAmount);
+  if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
+  params.append("sortBy", sorting.field);
+  params.append("order", sorting.order);
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
+  const res = await fetch(`/api/expenses?${params}`);
+  if (res.ok) {
+    const data = await res.json();
+    setExpenses(data);
+  }
+}, [filters, sorting]);
 
-  useEffect(() => {
-    if (user) fetchExpenses();
-  }, [user, filters, sorting]);
+// Fetch user on mount
+useEffect(() => {
+  fetchUser();
+}, []);
 
-  // Logout handler
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
-    setExpenses([]);
-  };
+// Fetch expenses when user, filters, or sorting change
+useEffect(() => {
+  if (user) fetchExpenses();
+}, [user, fetchExpenses]);
 
-  const handleLogin = async () => {
-    setError(null);
+// Logout handler
+const handleLogout = async () => {
+  await fetch("/api/auth/logout", { method: "POST" });
+  setUser(null);
+  setExpenses([]);
+};
 
-    if (!credentials.username || !credentials.password) {
-      setError("Please fill in all fields");
-      return;
-    }
+// Login handler
+const handleLogin = async () => {
+  setError(null);
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
+  if (!credentials.username || !credentials.password) {
+    setError("Please fill in all fields");
+    return;
+  }
+
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    setError(err.error || "Login failed");
+    return;
+  }
+
+  setCredentials({ username: "", password: "" });
+  fetchUser();
+};
+
+// Signup handler
+const handleSignup = async () => {
+  setError(null);
+
+  if (!credentials.username || !credentials.password) {
+    setError("Please fill in all fields");
+    return;
+  }
+
+  const res = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(credentials),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    setError(err.error || "Signup failed");
+    return;
+  }
+
+  alert("Signup successful! Please login.");
+  setCredentials({ username: "", password: "" });
+  setIsSignup(false);
+};
+
+// Submit expense
+const handleSubmitExpense = async () => {
+  const method = form.id ? "PUT" : "POST";
+  const url = form.id ? `/api/expenses/${form.id}` : "/api/expenses";
+
+  const res = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(form),
+  });
+
+  if (res.ok) {
+    setForm({
+      id: "",
+      title: "",
+      category: "FOOD",
+      amount: 0,
+      quantity: 1,
+      isRecurring: false,
+      taxPercent: 0,
+      discount: 0,
     });
+    fetchExpenses();
+  }
+};
 
-    if (!res.ok) {
-      const err = await res.json();
-      setError(err.error || "Login failed");
-      return;
-    }
-
-    setCredentials({ username: "", password: "" });
-    fetchUser();
-  };
-
-  const handleSignup = async () => {
-    setError(null);
-
-    if (!credentials.username || !credentials.password) {
-      setError("Please fill in all fields");
-      return;
-    }
-
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(credentials),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
-      setError(err.error || "Signup failed");
-      return;
-    }
-
-    alert("Signup successful! Please login.");
-    setCredentials({ username: "", password: "" });
-    setIsSignup(false);
-  };
-
-  const handleSubmitExpense = async () => {
-    const method = form.id ? "PUT" : "POST";
-    const url = form.id ? `/api/expenses/${form.id}` : "/api/expenses";
-
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    if (res.ok) {
-      setForm({
-        id: "",
-        title: "",
-        category: "FOOD",
-        amount: 0,
-        quantity: 1,
-        isRecurring: false,
-        taxPercent: 0,
-        discount: 0,
-      });
-      fetchExpenses();
-    }
-  };
-
-  const handleEdit = (exp: Expense) => setForm({ ...exp, quantity: exp.quantity || 1 });
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure?")) return;
-    const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-    if (res.ok) fetchExpenses();
-  };
-
+// Edit and Delete handlers
+const handleEdit = (exp: Expense) => setForm({ ...exp, quantity: exp.quantity ?? 1 });
+const handleDelete = async (id: string) => {
+  if (!confirm("Are you sure?")) return;
+  const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+  if (res.ok) fetchExpenses();
+};
   // Filter expenses locally (for client-side filtering that API doesn't support)
   const filteredExpenses = useMemo(() => {
     return expenses.filter((exp) => {
@@ -235,7 +239,7 @@ export default function HomePage() {
     const totals: Record<string, { original: number; effective: number }> = {};
     
     // Initialize all categories
-    for (let cat of categories) {
+    for (const cat of categories) {
       totals[cat] = { original: 0, effective: 0 };
     }
     
