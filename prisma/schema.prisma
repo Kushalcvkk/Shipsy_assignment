@@ -8,10 +8,10 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
+  id        String    @id @default(cuid())
+  username  String    @unique
   password  String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expenses  Expense[]
 }
 
@@ -24,15 +24,15 @@ enum Category {
 }
 
 model Expense {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   category    Category
-  isRecurring Boolean  @default(false)
-  amount      Decimal   @db.Decimal(10,2)
-  taxPercent  Decimal   @default(0) @db.Decimal(5,2)
-  discount    Decimal   @default(0) @db.Decimal(10,2)
+  isRecurring Boolean   @default(false)
+  amount      Decimal   @db.Decimal(10, 2)
+  taxPercent  Decimal   @default(0) @db.Decimal(5, 2)
+  discount    Decimal   @default(0) @db.Decimal(10, 2)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

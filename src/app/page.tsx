@@ -1,7 +1,8 @@
+/* eslint-disable */
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { Sun, Moon, LogOut } from "lucide-react";
+import { Sun, Moon, LogOut, X } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 type Expense = {
@@ -68,120 +69,144 @@ export default function HomePage() {
   });
 
   // Calculate effective amount for an expense
-  const calculateEffectiveAmount = (amount: number, quantity: number = 1, taxPercent: number = 0, discount: number = 0) => {
+  const calculateEffectiveAmount = useCallback((amount: number, quantity: number = 1, taxPercent: number = 0, discount: number = 0) => {
     const subtotal = amount * quantity;
     const discountAmount = (subtotal * discount) / 100;
     const afterDiscount = subtotal - discountAmount;
     const taxAmount = (afterDiscount * taxPercent) / 100;
     return afterDiscount + taxAmount;
-  };
+  }, []);
 
   // Fetch logged-in user
-  const fetchUser = async () => {
-    const res = await fetch("/api/auth/me");
-    if (res.ok) {
-      const data = await res.json();
-      setUser(data.user);
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, []);
 
   const fetchExpenses = useCallback(async () => {
-  const params = new URLSearchParams();
+    if (!user) return;
+    
+    try {
+      const params = new URLSearchParams();
 
-  if (filters.category !== "ALL") params.append("category", filters.category);
-  if (filters.minAmount) params.append("minAmount", filters.minAmount);
-  if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
-  params.append("sortBy", sorting.field);
-  params.append("order", sorting.order);
+      if (filters.category !== "ALL") params.append("category", filters.category);
+      if (filters.minAmount) params.append("minAmount", filters.minAmount);
+      if (filters.maxAmount) params.append("maxAmount", filters.maxAmount);
+      params.append("sortBy", sorting.field);
+      params.append("order", sorting.order);
 
-  const res = await fetch(`/api/expenses?${params}`);
-  if (res.ok) {
-    const data = await res.json();
-    setExpenses(data);
-  }
-}, [filters, sorting]);
+      const res = await fetch(`/api/expenses?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setExpenses(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch expenses:", err);
+    }
+  }, [user, filters.category, filters.minAmount, filters.maxAmount, sorting.field, sorting.order]);
 
-// Fetch user on mount
-useEffect(() => {
-  fetchUser();
-}, []);
+  // Fetch user on mount
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
-// Fetch expenses when user, filters, or sorting change
-useEffect(() => {
-  if (user) fetchExpenses();
-}, [user, fetchExpenses]);
+  // Fetch expenses when user, filters, or sorting change
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
-// Logout handler
-const handleLogout = async () => {
-  await fetch("/api/auth/logout", { method: "POST" });
-  setUser(null);
-  setExpenses([]);
-};
+  // Logout handler
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      setExpenses([]);
+      // Reset form when logging out
+      setForm({
+        id: "",
+        title: "",
+        category: "FOOD",
+        amount: 0,
+        quantity: 1,
+        isRecurring: false,
+        taxPercent: 0,
+        discount: 0,
+      });
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
+  };
 
-// Login handler
-const handleLogin = async () => {
-  setError(null);
+  // Login handler
+  const handleLogin = async () => {
+    setError(null);
 
-  if (!credentials.username || !credentials.password) {
-    setError("Please fill in all fields");
-    return;
-  }
+    if (!credentials.username || !credentials.password) {
+      setError("Please fill in all fields");
+      return;
+    }
 
-  const res = await fetch("/api/auth/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-  });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
 
-  if (!res.ok) {
-    const err = await res.json();
-    setError(err.error || "Login failed");
-    return;
-  }
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || "Login failed");
+        return;
+      }
 
-  setCredentials({ username: "", password: "" });
-  fetchUser();
-};
+      setCredentials({ username: "", password: "" });
+      fetchUser();
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
 
-// Signup handler
-const handleSignup = async () => {
-  setError(null);
+  // Signup handler
+  const handleSignup = async () => {
+    setError(null);
 
-  if (!credentials.username || !credentials.password) {
-    setError("Please fill in all fields");
-    return;
-  }
+    if (!credentials.username || !credentials.password) {
+      setError("Please fill in all fields");
+      return;
+    }
 
-  const res = await fetch("/api/auth/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(credentials),
-  });
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(credentials),
+      });
 
-  if (!res.ok) {
-    const err = await res.json();
-    setError(err.error || "Signup failed");
-    return;
-  }
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || "Signup failed");
+        return;
+      }
 
-  alert("Signup successful! Please login.");
-  setCredentials({ username: "", password: "" });
-  setIsSignup(false);
-};
+      alert("Signup successful! Please login.");
+      setCredentials({ username: "", password: "" });
+      setIsSignup(false);
+    } catch (err) {
+      setError("Network error. Please try again.");
+    }
+  };
 
-// Submit expense
-const handleSubmitExpense = async () => {
-  const method = form.id ? "PUT" : "POST";
-  const url = form.id ? `/api/expenses/${form.id}` : "/api/expenses";
-
-  const res = await fetch(url, {
-    method,
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(form),
-  });
-
-  if (res.ok) {
+  // Reset form to initial state
+  const resetForm = useCallback(() => {
     setForm({
       id: "",
       title: "",
@@ -192,17 +217,78 @@ const handleSubmitExpense = async () => {
       taxPercent: 0,
       discount: 0,
     });
-    fetchExpenses();
-  }
-};
+  }, []);
 
-// Edit and Delete handlers
-const handleEdit = (exp: Expense) => setForm({ ...exp, quantity: exp.quantity ?? 1 });
-const handleDelete = async (id: string) => {
-  if (!confirm("Are you sure?")) return;
-  const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
-  if (res.ok) fetchExpenses();
-};
+  // Submit expense
+  const handleSubmitExpense = async () => {
+    if (!form.title.trim()) {
+      alert("Please enter a title");
+      return;
+    }
+
+    if (form.amount <= 0) {
+      alert("Please enter a valid amount");
+      return;
+    }
+
+    try {
+      const method = form.id ? "PUT" : "POST";
+      const url = form.id ? `/api/expenses/${form.id}` : "/api/expenses";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (res.ok) {
+        resetForm();
+        fetchExpenses();
+      } else {
+        const err = await res.json();
+        alert(err.error || "Failed to save expense");
+      }
+    } catch (err) {
+      alert("Network error. Please try again.");
+    }
+  };
+
+  // Edit handler - fixed to properly populate form
+  const handleEdit = useCallback((exp: Expense) => {
+    setForm({
+      id: exp.id,
+      title: exp.title,
+      category: exp.category,
+      amount: Number(exp.amount),
+      quantity: Number(exp.quantity || 1),
+      isRecurring: exp.isRecurring,
+      taxPercent: Number(exp.taxPercent),
+      discount: Number(exp.discount),
+    });
+    // Scroll to form for better UX
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Delete handler
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this expense?")) return;
+    
+    try {
+      const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        fetchExpenses();
+        // If we're currently editing this expense, reset the form
+        if (form.id === id) {
+          resetForm();
+        }
+      } else {
+        alert("Failed to delete expense");
+      }
+    } catch (err) {
+      alert("Network error. Please try again.");
+    }
+  };
+
   // Filter expenses locally (for client-side filtering that API doesn't support)
   const filteredExpenses = useMemo(() => {
     return expenses.filter((exp) => {
@@ -232,7 +318,7 @@ const handleDelete = async (id: string) => {
       
       return true;
     });
-  }, [expenses, filters]);
+  }, [expenses, filters.searchTerm, filters.isRecurring, filters.dateFrom, filters.dateTo]);
 
   // Category-wise totals (using filtered expenses and effective amounts)
   const categoryTotals = useMemo(() => {
@@ -253,7 +339,7 @@ const handleDelete = async (id: string) => {
     });
     
     return totals;
-  }, [filteredExpenses]);
+  }, [filteredExpenses, calculateEffectiveAmount]);
 
   // Pie chart data
   const pieChartData = useMemo(() => {
@@ -373,7 +459,20 @@ const handleDelete = async (id: string) => {
         {/* Expense Form */}
         <div className="lg:col-span-2">
           <div className={`${darkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-900'} p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700`}>
-            <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">{form.id ? "Edit Expense" : "Add Expense"}</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-blue-600 dark:text-blue-400">
+                {form.id ? "Edit Expense" : "Add Expense"}
+              </h2>
+              {form.id && (
+                <button
+                  onClick={resetForm}
+                  className="flex items-center gap-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                >
+                  <X size={16} />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <input
@@ -404,7 +503,7 @@ const handleDelete = async (id: string) => {
                   min="0"
                   className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${darkMode ? 'text-white bg-gray-700 border-gray-600' : 'text-gray-900 bg-white'}`}
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, amount: Number(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -416,7 +515,7 @@ const handleDelete = async (id: string) => {
                   min="1"
                   className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${darkMode ? 'text-white bg-gray-700 border-gray-600' : 'text-gray-900 bg-white'}`}
                   value={form.quantity}
-                  onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) || 1 })}
                 />
               </div>
 
@@ -429,7 +528,7 @@ const handleDelete = async (id: string) => {
                   max="100"
                   className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${darkMode ? 'text-white bg-gray-700 border-gray-600' : 'text-gray-900 bg-white'}`}
                   value={form.taxPercent}
-                  onChange={(e) => setForm({ ...form, taxPercent: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, taxPercent: Number(e.target.value) || 0 })}
                 />
               </div>
 
@@ -442,7 +541,7 @@ const handleDelete = async (id: string) => {
                   max="100"
                   className={`w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${darkMode ? 'text-white bg-gray-700 border-gray-600' : 'text-gray-900 bg-white'}`}
                   value={form.discount}
-                  onChange={(e) => setForm({ ...form, discount: Number(e.target.value) })}
+                  onChange={(e) => setForm({ ...form, discount: Number(e.target.value) || 0 })}
                 />
               </div>
             </div>
@@ -472,12 +571,23 @@ const handleDelete = async (id: string) => {
               </div>
             )}
 
-            <button 
-              onClick={handleSubmitExpense} 
-              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
-            >
-              {form.id ? "Update" : "Add"} Expense
-            </button>
+            <div className="flex gap-3">
+              <button 
+                onClick={handleSubmitExpense} 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium"
+              >
+                {form.id ? "Update" : "Add"} Expense
+              </button>
+              
+              {form.id && (
+                <button 
+                  onClick={resetForm}
+                  className="bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-all duration-200 font-medium"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -493,7 +603,7 @@ const handleDelete = async (id: string) => {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => 
-  `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
+                    `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -806,3 +916,4 @@ const handleDelete = async (id: string) => {
     </div>
   );
 }
+

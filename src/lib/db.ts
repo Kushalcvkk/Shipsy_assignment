@@ -1,19 +1,22 @@
-import { PrismaClient, Category as PrismaCategory } from "@prisma/client";
+import { PrismaClient, Category } from "@prisma/client";
 
-// Use a global variable to prevent creating multiple instances in development
+// Avoid multiple PrismaClient instances in development
 declare global {
-  var __globalPrisma__: PrismaClient | undefined;
+  // This is needed for TypeScript to recognize our global Prisma instance
+  // eslint-disable-next-line no-var
+  var __prisma__: PrismaClient | undefined;
 }
 
-export const prisma: PrismaClient =
-  global.__globalPrisma__ ||
+export const prisma =
+  global.__prisma__ ??
   new PrismaClient({
     log: ["warn", "error"],
   });
 
 if (process.env.NODE_ENV !== "production") {
-  global.__globalPrisma__ = prisma;
+  global.__prisma__ = prisma;
 }
 
-// Re-export the enum directly
-export { PrismaCategory as Category };
+// Re-export Category enum directly for convenience
+export { Category };
+// export type { PrismaClient };
