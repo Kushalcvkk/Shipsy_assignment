@@ -1,10 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 
+// Use a global variable to prevent creating multiple instances in development
 declare global {
   // eslint-disable-next-line no-var
-  var prisma: PrismaClient | undefined;
+  var __globalPrisma__: PrismaClient | undefined;
 }
 
-export const prisma = global.prisma || new PrismaClient({ log: ["warn", "error"] });
+export const prisma: PrismaClient =
+  global.__globalPrisma__ ||
+  new PrismaClient({
+    log: ["warn", "error"],
+  });
 
-if (process.env.NODE_ENV !== "production") global.prisma = prisma;
+if (process.env.NODE_ENV !== "production") {
+  global.__globalPrisma__ = prisma;
+}
