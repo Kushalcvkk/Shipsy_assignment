@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/get-user";
 
-export async function GET(req: NextRequest, { params }: any) {
+interface Params {
+  params: {
+    id: string;
+  };
+}
+
+export async function GET(req: NextRequest, { params }: Params) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -15,7 +21,7 @@ export async function GET(req: NextRequest, { params }: any) {
   return NextResponse.json(expense);
 }
 
-export async function PUT(req: NextRequest, { params }: any) {
+export async function PUT(req: NextRequest, { params }: Params) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -26,13 +32,16 @@ export async function PUT(req: NextRequest, { params }: any) {
     data,
   });
 
-  if (updated.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (updated.count === 0)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const expense = await prisma.expense.findUnique({ where: { id: params.id } });
+  const expense = await prisma.expense.findUnique({
+    where: { id: params.id },
+  });
   return NextResponse.json(expense);
 }
 
-export async function DELETE(req: NextRequest, { params }: any) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -40,7 +49,8 @@ export async function DELETE(req: NextRequest, { params }: any) {
     where: { id: params.id, userId: user.id },
   });
 
-  if (deleted.count === 0) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (deleted.count === 0)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ message: "Deleted successfully" });
 }

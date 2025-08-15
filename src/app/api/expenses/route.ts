@@ -1,69 +1,77 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, Category } from "@/lib/db";
 import { getUserFromRequest } from "@/lib/get-user";
 
-export async function POST(req: NextRequest) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { title, category, amount, isRecurring, taxPercent, discount } = await req.json();
+    const { id } = params;
 
-    const expense = await prisma.expense.create({
-      data: {
-        userId: user.id,
-        title,
-        category,
-        amount,
-        isRecurring: isRecurring ?? false,
-        taxPercent: taxPercent ?? 0,
-        discount: discount ?? 0,
-      },
+    const expense = await prisma.expense.findFirst({
+      where: { id, userId: user.id },
     });
 
+    if (!expense) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+
     return NextResponse.json(expense);
-  } catch (err) {
+  } catch (error) {
+    console.error(error);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
 
-export async function GET(req: NextRequest) {
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const user = await getUserFromRequest(req);
-    if (!user)
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category");
-    const sortBy = searchParams.get("sortBy") || "createdAt";
-    const order = searchParams.get("order") || "desc";
-    const minAmount = searchParams.get("minAmount");
-    const maxAmount = searchParams.get("maxAmount");
+    const { id } = params;
+    const body = await req.json() as {
+      title?: string;
+      category?: string;
+      amount?: number;
+      isRecurring?: boolean;
+      taxPercent?: number;
+      discount?: number;
+    };
 
-    const where: any = { userId: user.id };
-
-    if (category && category !== "ALL") {
-      where.category = category;
+    const updateData: any = { ...body };
+    if (body.category) {
+      updateData.category = Category[body.category as keyof typeof Category];
     }
 
-    if (minAmount) {
-      where.amount = { ...where.amount, gte: parseFloat(minAmount) };
-    }
-    if (maxAmount) {
-      where.amount = { ...where.amount, lte: parseFloat(maxAmount) };
-    }
-
-    const expenses = await prisma.expense.findMany({
-      where,
-      orderBy: { [sortBy]: order },
+    const expense = await prisma.expense.updateMany({
+      where: { id, userId: user.id },
+      data: updateData,
     });
 
-    return NextResponse.json(expenses);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { error: "Something went wrong" },
-      { status: 500 }
-    );
+    if (expense.count === 0) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const user = await getUserFromRequest(req);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id } = params;
+
+    const deleted = await prisma.expense.deleteMany({
+      where: { id, userId: user.id },
+    });
+
+    if (deleted.count === 0) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }

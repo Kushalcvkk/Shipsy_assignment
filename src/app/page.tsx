@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Sun, Moon, LogOut } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 type Expense = {
   id: string;

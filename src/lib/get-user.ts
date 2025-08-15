@@ -2,19 +2,25 @@ import { cookies } from "next/headers";
 import { verifyJwt } from "./auth";
 import { prisma } from "./db";
 
-export async function getUserFromRequest(req?: Request) {
-  try {
-    const cookieHeader = req ? req.headers.get("cookie") : undefined;
+interface UserFromRequest {
+  id: string;
+  username: string;
+}
 
+export async function getUserFromRequest(req?: Request): Promise<UserFromRequest | null> {
+  try {
     let token: string | undefined;
 
-    if (cookieHeader) {
-      token = cookieHeader
-        .split(";")
-        .find(c => c.trim().startsWith("token="))
-        ?.split("=")[1];
+    if (req) {
+      const cookieHeader = req.headers.get("cookie");
+      if (cookieHeader) {
+        token = cookieHeader
+          .split(";")
+          .find((c) => c.trim().startsWith("token="))
+          ?.split("=")[1];
+      }
     } else {
-      const cookieStore = await cookies(); // await here
+      const cookieStore = await cookies();
       token = cookieStore.get("token")?.value;
     }
 
@@ -26,7 +32,8 @@ export async function getUserFromRequest(req?: Request) {
     if (!user) return null;
 
     return { id: user.id, username: user.username };
-  } catch {
+  } catch (error) {
+    console.error("Failed to get user from request:", error);
     return null;
   }
 }

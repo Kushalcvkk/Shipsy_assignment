@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Category as PrismaCategory } from "@prisma/client";
 
 // Use a global variable to prevent creating multiple instances in development
 declare global {
@@ -15,3 +15,6 @@ export const prisma: PrismaClient =
 if (process.env.NODE_ENV !== "production") {
   global.__globalPrisma__ = prisma;
 }
+
+// Re-export the enum directly (no assignment)
+export { PrismaCategory as Category };
