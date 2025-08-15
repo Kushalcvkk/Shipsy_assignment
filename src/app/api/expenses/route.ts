@@ -5,9 +5,7 @@ import { getUserFromRequest } from "@/lib/get-user";
 export async function POST(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { title, category, amount, isRecurring, taxPercent, discount } = await req.json();
 
@@ -32,36 +30,40 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
-    if (!user) {
+    if (!user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const order = searchParams.get("order") || "desc";
+    const minAmount = searchParams.get("minAmount");
+    const maxAmount = searchParams.get("maxAmount");
 
-    // Filtering
-    const categoryFilter = searchParams.get("category") || "all";
+    const where: any = { userId: user.id };
 
-    // Sorting
-    const sortBy = searchParams.get("sortBy") || "date-desc";
+    if (category && category !== "ALL") {
+      where.category = category;
+    }
 
-    // Prisma sort mapping
-    let orderBy: Record<string, "asc" | "desc"> = { createdAt: "desc" };
-    if (sortBy === "date-asc") orderBy = { createdAt: "asc" };
-    if (sortBy === "amount-desc") orderBy = { amount: "desc" };
-    if (sortBy === "amount-asc") orderBy = { amount: "asc" };
-
-    const whereClause: Record<string, any> = { userId: user.id };
-    if (categoryFilter !== "all") {
-      whereClause.category = categoryFilter;
+    if (minAmount) {
+      where.amount = { ...where.amount, gte: parseFloat(minAmount) };
+    }
+    if (maxAmount) {
+      where.amount = { ...where.amount, lte: parseFloat(maxAmount) };
     }
 
     const expenses = await prisma.expense.findMany({
-      where: whereClause,
-      orderBy,
+      where,
+      orderBy: { [sortBy]: order },
     });
 
     return NextResponse.json(expenses);
-  } catch {
-    return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
   }
 }
