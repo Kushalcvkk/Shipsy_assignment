@@ -11,17 +11,17 @@ type ExpenseUpdate = {
   discount?: number;
 };
 
-interface Params {
-  params: { id: string };
-}
-
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    // Extract id from the URL
+    const id = req.nextUrl.pathname.split("/").pop();
+    if (!id) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
     const expense = await prisma.expense.findFirst({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     });
 
     if (!expense) return NextResponse.json({ error: "Expense not found" }, { status: 404 });
@@ -32,10 +32,13 @@ export async function GET(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function PUT(req: NextRequest, { params }: Params) {
+export async function PUT(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const id = req.nextUrl.pathname.split("/").pop();
+    if (!id) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
 
     const body: ExpenseUpdate = await req.json();
 
@@ -43,7 +46,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (body.category) updateData.category = body.category;
 
     const updated = await prisma.expense.updateMany({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
       data: updateData,
     });
 
@@ -51,7 +54,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
 
     const expense = await prisma.expense.findFirst({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     });
 
     return NextResponse.json(expense);
@@ -60,13 +63,16 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest) {
   try {
     const user = await getUserFromRequest(req);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const id = req.nextUrl.pathname.split("/").pop();
+    if (!id) return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+
     const deleted = await prisma.expense.deleteMany({
-      where: { id: params.id, userId: user.id },
+      where: { id, userId: user.id },
     });
 
     if (deleted.count === 0)
