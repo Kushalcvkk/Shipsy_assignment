@@ -2,15 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import bcrypt from "bcrypt";
 
-interface RegisterBody {
-  username: string;
-  password: string;
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const body: RegisterBody = await req.json();
-    const { username, password } = body;
+    const body = await req.json();
+    const { username, password } = body as { username?: string; password?: string };
 
     if (!username || !password) {
       return NextResponse.json({ error: "Missing username or password" }, { status: 400 });
@@ -28,8 +23,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ id: user.id, username: user.username });
-  } catch (_err) {
-    // prefixed with _ to avoid ESLint warning about unused variable
+  } catch (_) {
+    // Error intentionally unused; log if needed
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
   }
 }
