@@ -11,7 +11,7 @@ interface SignupRequestBody {
 
 // Type for the response user object
 interface UserResponse {
-  id: number;
+  id: string;
   username: string;
   createdAt: Date;
 }
