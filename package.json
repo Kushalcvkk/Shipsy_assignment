@@ -2,17 +2,18 @@
   "name": "expense-app",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "lint": "next lint",
-    "dev": "next dev",
-    "build": "npm run prisma:generate && next build",
-    "start": "next start",
-    "test": "vitest run",
-    "prisma:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "postinstall": "prisma generate"
-  },
+"scripts": {
+  "lint": "next lint",
+  "dev": "next dev",
+  "build": "prisma generate && next build",
+  "start": "next start",
+  "test": "vitest run",
+  "prisma:generate": "prisma generate",
+  "db:migrate": "prisma migrate dev",
+  "db:deploy": "prisma migrate deploy",
+  "postinstall": "prisma generate"
+},
+
   "prisma": {
     "seed": "node prisma/seed.js"
   },
