@@ -11,12 +11,12 @@ interface SignupRequestBody {
 
 // Type for the response user object
 interface UserResponse {
-  id: number;
+  id: string; // <-- changed from number to string
   username: string;
   createdAt: Date;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body: Partial<SignupRequestBody> = await req.json();
     const { username, password } = body;

@@ -175,35 +175,43 @@ export default function HomePage() {
     }
   };
 
-  // Signup handler
-  const handleSignup = async () => {
-    setError(null);
+// Frontend Signup Handler
+const handleSignup = async () => {
+  setError(null);
 
-    if (!credentials.username || !credentials.password) {
-      setError("Please fill in all fields");
+  if (!credentials.username || !credentials.password) {
+    setError("Please fill in all fields");
+    return;
+  }
+
+  try {
+    // Use absolute URL if deployed
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || "https://shipsy-assignment-917h.vercel.app/"; // e.g., "https://your-vercel-app.vercel.app"
+    const res = await fetch(`${baseUrl}/api/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      console.error("Signup failed:", data);
+      setError(data.error || "Signup failed");
       return;
     }
 
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
+    const data = await res.json();
+    console.log("Signup successful:", data);
+    alert("Signup successful! Please login.");
+    setCredentials({ username: "", password: "" });
+    setIsSignup(false);
+  } catch (err) {
+    console.error("Network error during signup:", err);
+    setError("Network error. Please try again.");
+  }
+};
 
-      if (!res.ok) {
-        const err = await res.json();
-        setError(err.error || "Signup failed");
-        return;
-      }
-
-      alert("Signup successful! Please login.");
-      setCredentials({ username: "", password: "" });
-      setIsSignup(false);
-    } catch (err) {
-      setError("Network error. Please try again.");
-    }
-  };
 
   // Reset form to initial state
   const resetForm = useCallback(() => {
