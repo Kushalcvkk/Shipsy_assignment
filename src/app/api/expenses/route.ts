@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     title: string;
     category: string;
     amount: number;
+    quantity?: number;          
     isRecurring?: boolean;
     taxPercent?: number;
     discount?: number;
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       title: reqBody.title,
       category: categoryEnum,
       amount: reqBody.amount,
+      quantity: reqBody.quantity ?? 1,   
       isRecurring: reqBody.isRecurring ?? false,
       taxPercent: reqBody.taxPercent ?? 0,
       discount: reqBody.discount ?? 0,

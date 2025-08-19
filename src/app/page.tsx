@@ -268,7 +268,7 @@ const handleSignup = async () => {
       title: exp.title,
       category: exp.category,
       amount: Number(exp.amount),
-      quantity: Number(exp.quantity || 1),
+      quantity: Number(exp.quantity),
       isRecurring: exp.isRecurring,
       taxPercent: Number(exp.taxPercent),
       discount: Number(exp.discount),

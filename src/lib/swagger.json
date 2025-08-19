@@ -39,38 +39,75 @@
       }
     },
     "/expenses": {
-      "get": { "summary": "Get all expenses", "responses": { "200": { "description": "List of expenses" } } },
+      "get": {
+        "summary": "Get all expenses",
+        "responses": { "200": { "description": "List of expenses" } }
+      },
       "post": {
         "summary": "Create a new expense",
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/Expense" } }
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/Expense" }
+            }
           }
         },
         "responses": { "200": { "description": "Expense created" } }
       }
     },
     "/expenses/{id}": {
-      "get": { "summary": "Get expense by ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Expense details" } } },
-      "put": { "summary": "Update expense by ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Updated expense" } } },
-      "delete": { "summary": "Delete expense by ID", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }], "responses": { "200": { "description": "Deleted" } } }
+      "get": {
+        "summary": "Get expense by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Expense details" } }
+      },
+      "put": {
+        "summary": "Update expense by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Updated expense" } }
+      },
+      "delete": {
+        "summary": "Delete expense by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
     }
   },
   "components": {
     "schemas": {
-      "UserRegister": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" } } },
-      "UserLogin": { "type": "object", "properties": { "username": { "type": "string" }, "password": { "type": "string" } } },
+      "UserRegister": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" }
+        }
+      },
+      "UserLogin": {
+        "type": "object",
+        "properties": {
+          "username": { "type": "string" },
+          "password": { "type": "string" }
+        }
+      },
       "Expense": {
         "type": "object",
         "properties": {
           "title": { "type": "string" },
           "category": { "type": "string" },
           "amount": { "type": "number" },
+          "quantity": { "type": "number", "default": 1 },
           "isRecurring": { "type": "boolean" },
           "taxPercent": { "type": "number" },
           "discount": { "type": "number" }
-        }
+        },
+        "required": ["title", "category", "amount", "quantity"]
       }
     }
   }
